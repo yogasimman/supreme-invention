@@ -50,7 +50,7 @@ async function getOrCreateCart(user_id) {
 // -----------------------------------
 // Assuming you have a "cart" table that stores cart items for each user
 
-app.post('/cart/add', async (req, res) => {
+app.post('/add', async (req, res) => {
   const { itemIds, remove } = req.body;
   const userId = 2; // Assuming user is logged in and we have access to their user_id
   try {
@@ -113,7 +113,7 @@ app.post('/cart/add', async (req, res) => {
 // Endpoint: GET /cart
 // Description: Retrieve cart items with details for the logged-in user.
 // -----------------------------------
-app.get('/cart', async (req, res) => {
+app.get('/:rest_id', async (req, res) => {
   //if (!req.session.user) {
     //return res.status(401).json({ error: 'User not logged in' });
   //}
@@ -144,10 +144,10 @@ app.get('/cart', async (req, res) => {
 // Description: Place an order based on the current cart items for the logged-in user.
 // -----------------------------------
 app.post('/order', async (req, res) => {
-  if (!req.session.user) {
-    return res.status(401).json({ error: 'User not logged in' });
-  }
-  const user_id = req.session.user.user_id;
+  //if (!req.session.user) {
+    //return res.status(401).json({ error: 'User not logged in' });
+  //}
+  const user_id = 2;
   try {
     // Retrieve the user's cart
     const cartResult = await pool.query('SELECT cart_id FROM cart WHERE user_id = $1', [user_id]);
