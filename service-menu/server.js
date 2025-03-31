@@ -35,6 +35,12 @@ app.get('/:restaurantId', async (req, res) => {
 });
 
 // Start the menu service server
-app.listen(port, () => {
-  console.log(`Menu service is running on port ${port}`);
-});
+//app.listen(port, () => {
+  //console.log(`Menu service is running on port ${port}`);
+//});
+//lambda
+const awsServerlessExpress = require('aws-serverless-express');
+const server = awsServerlessExpress.createServer(app);
+
+exports.handler = (event, context) => awsServerlessExpress.proxy(server, event, context);
+
