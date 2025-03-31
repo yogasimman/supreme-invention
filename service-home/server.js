@@ -70,6 +70,23 @@ app.use('/view', createProxyMiddleware({
   }
 }));
 
+// Proxy /orders requests to the Order Tracking service running on port 3003
+app.use('/vieworders', createProxyMiddleware({
+  target: 'http://localhost:3003',
+  changeOrigin: true,
+  pathRewrite: {
+    '^/vieworders': '' // Remove '/orders' prefix before forwarding the request.
+  }
+}));
+
+// Proxy /order requests to the Order Tracking service running on port 3003
+app.use('/vieworder', createProxyMiddleware({
+  target: 'http://localhost:3003',
+  changeOrigin: true,
+  pathRewrite: {
+    '^/vieworder': '' // Remove '/order' prefix before forwarding the request.
+  }
+}));
 
 // --------------------
 // Authentication Routes
