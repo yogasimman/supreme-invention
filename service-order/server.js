@@ -44,58 +44,80 @@ async function getOrCreateCart(user_id) {
 
 // -----------------------------------
 // Endpoint: POST /cart/add
-// Description: Add an array of item IDs to the user's cart.
+// Description: Add or remove an array of item IDs to/from the user's cart.
+// If "remove" is true, each item is decremented (or removed if quantity becomes 0).
+// Otherwise, each item is added (or quantity incremented).
 // -----------------------------------
-app.post('/cart/add', async (req, res) => {
-  if (!req.session.user) {
-    return res.status(401).json({ error: 'User not logged in' });
-  }
-  const user_id = req.session.user.user_id;
-  const { itemIds } = req.body;
-  
-  if (!itemIds || !Array.isArray(itemIds)) {
-    return res.status(400).json({ error: 'itemIds must be provided as an array' });
-  }
+// Assuming you have a "cart" table that stores cart items for each user
 
+app.post('/cart/add', async (req, res) => {
+  const { itemIds, remove } = req.body;
+  const userId = 2; // Assuming user is logged in and we have access to their user_id
   try {
-    const cart_id = await getOrCreateCart(user_id);
+    if (!userId) {
+      return res.status(401).json({ error: 'User not authenticated' });
+    }
+
     for (const itemId of itemIds) {
-      // Check if the item already exists in the cart
-      const existResult = await pool.query(
-        'SELECT cart_item_id, quantity FROM cart_item WHERE cart_id = $1 AND item_id = $2',
-        [cart_id, itemId]
+      // Check if the item already exists in the user's cart
+      const cartItem = await pool.query(
+        'SELECT * FROM cart_item A JOIN cart B ON B.cart_id = A.cart_id WHERE B.user_id = $1 AND A.item_id = $2',
+        [userId, itemId]
       );
-      if (existResult.rows.length > 0) {
-        // Update quantity if already exists
-        const currentQty = existResult.rows[0].quantity;
-        await pool.query(
-          'UPDATE cart_item SET quantity = $1 WHERE cart_item_id = $2',
-          [currentQty + 1, existResult.rows[0].cart_item_id]
-        );
+
+      if (remove) {
+        if (cartItem.rows.length > 0) {
+          // Decrement or remove item from cart
+          const newQuantity = cartItem.rows[0].quantity - 1;
+          if (newQuantity <= 0) {
+            // Remove item from cart entirely if quantity reaches zero
+            await pool.query(
+              'DELETE FROM cart_item WHERE cart_id = $1 AND item_id = $2',
+              [cartItem.rows[0].cart_id, itemId]
+            );
+          } else {
+            // Update the quantity in the cart
+            await pool.query(
+              'UPDATE cart_item SET quantity = $1 WHERE cart_id = $2 AND item_id = $3',
+              [newQuantity, cartItem.rows[0].cart_id, itemId]
+            );
+          }
+        }
       } else {
-        // Insert new cart item with quantity 1
-        await pool.query(
-          'INSERT INTO cart_item (cart_id, item_id, quantity) VALUES ($1, $2, $3)',
-          [cart_id, itemId, 1]
-        );
+        if (cartItem.rows.length > 0) {
+          // Item exists in cart, so increment the quantity
+          const newQuantity = cartItem.rows[0].quantity + 1;
+          await pool.query(
+            'UPDATE cart_item SET quantity = $1 WHERE cart_id = $2 AND item_id = $3',
+            [newQuantity, cartItem.rows[0].cart_id, itemId]
+          );
+        } else {
+          // Item doesn't exist in the cart, so add it
+          await pool.query(
+            'INSERT INTO cart_item (cart_id, item_id, quantity) VALUES ((SELECT cart_id FROM cart WHERE user_id = $1), $2, $3)',
+            [userId, itemId, 1] // Initially adding 1 item
+          );
+        }
       }
     }
-    res.json({ message: 'Items added to cart successfully' });
-  } catch (err) {
-    console.error('Error adding items to cart:', err);
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error in /cart/add:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
+
 
 // -----------------------------------
 // Endpoint: GET /cart
 // Description: Retrieve cart items with details for the logged-in user.
 // -----------------------------------
 app.get('/cart', async (req, res) => {
-  if (!req.session.user) {
-    return res.status(401).json({ error: 'User not logged in' });
-  }
-  const user_id = req.session.user.user_id;
+  //if (!req.session.user) {
+    //return res.status(401).json({ error: 'User not logged in' });
+  //}
+  const user_id = 2;
   try {
     const cartResult = await pool.query('SELECT cart_id FROM cart WHERE user_id = $1', [user_id]);
     if (cartResult.rows.length === 0) {

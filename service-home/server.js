@@ -59,22 +59,22 @@ app.use('/menu', createProxyMiddleware({
   }
 }));
 
+// Proxy /cart/add requests to the Cart/Order service running on port 3002
+app.use('/cart/add', createProxyMiddleware({
+  target: 'http://localhost:3002',
+  changeOrigin: true
+}));
+
 // Proxy /cart requests to the Cart/Order service running on port 3002
 app.use('/cart', createProxyMiddleware({
   target: 'http://localhost:3002',
-  changeOrigin: true,
-  pathRewrite: {
-    '^/cart': '' // Remove '/cart' prefix before forwarding the request.
-  }
+  changeOrigin: true
 }));
 
 // Proxy /order requests to the Cart/Order service running on port 3002
 app.use('/order', createProxyMiddleware({
   target: 'http://localhost:3002',
-  changeOrigin: true,
-  pathRewrite: {
-    '^/order': '' // Remove '/order' prefix before forwarding the request.
-  }
+  changeOrigin: true
 }));
 
 // --------------------
