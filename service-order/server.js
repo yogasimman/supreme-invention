@@ -204,6 +204,13 @@ app.post('/order', async (req, res) => {
 });
 
 // Start the Cart and Order service server
-app.listen(port, () => {
-  console.log(`Cart and Order service is running on port ${port}`);
-});
+//app.listen(port, () => {
+  //console.log(`Cart and Order service is running on port ${port}`);
+//});
+
+//Lambda
+const awsServerlessExpress = require('aws-serverless-express');
+const server = awsServerlessExpress.createServer(app);
+
+exports.handler = (event, context) => awsServerlessExpress.proxy(server, event, context);
+
