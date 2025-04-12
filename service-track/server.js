@@ -25,7 +25,7 @@ app.use(session({
 
 // Configure PostgreSQL connection
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL || 'postgresql://fooddeladmin:FoodDeliveryPassword@fooddeliverydb.cb86squ28rpi.eu-north-1.rds.amazonaws.com:5432/postgres',
+  connectionString: process.env.DATABASE_URL || 'postgresql://fooddeladmin:FoodDeliveryPassword@database-1.c9aisiwiarf6.ap-south-1.rds.amazonaws.com:5432/postgres',
   ssl: { rejectUnauthorized: false }
 });
 
@@ -94,6 +94,35 @@ app.get('/:orderId', async (req, res) => {
     res.status(500).json({ error: 'Internal server error' });
   }
 });
+
+app.get('/time-left/:orderId', async (req, res) => {
+  const orderId = req.params.orderId;
+
+  try {
+    const result = await pool.query(`
+      SELECT
+        GREATEST(0, EXTRACT(EPOCH FROM (order_time + interval '30 minutes' - NOW()))) AS seconds_left
+      FROM "order"
+      WHERE order_id = $1
+    `, [orderId]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Order not found' });
+    }
+
+    const totalSeconds = Math.floor(result.rows[0].seconds_left);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    const timeLeft = `${minutes}m ${seconds}s`;
+
+    res.json({ time_left: timeLeft });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+
 
 app.listen(port, () => {
   console.log(`Order Tracking service is running on port ${port}`);
